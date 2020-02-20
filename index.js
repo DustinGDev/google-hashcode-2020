@@ -1,5 +1,6 @@
 const fs = require('fs');
-const files = ['a_example', 'b_read_on', 'c_incunabula', 'd_tough_choices', 'e_so_many_books', 'f_libraries_of_the_world'];
+const files = ['a_example', 'b_read_on'];
+//, 'c_incunabula', 'd_tough_choices', 'e_so_many_books', 'f_libraries_of_the_world'
 let absolutScore = 0;
 
 for (let filePath of files) {
@@ -36,8 +37,7 @@ for (let filePath of files) {
             const score = books[book];
             bookRarity[book] ? bookRarity[book]++ : bookRarity[book] = 1;
 
-
-            byScore[score] = book;
+            byScore[score] ?  byScore[score].push(book) : byScore[score] = [ book ];
         })
 
         librariesData.push({
@@ -68,18 +68,26 @@ for (let filePath of files) {
 
     const scanBooks = (librarie) => {
         const librarieId = librarie.id;
-
+        
         for(let index = 0; index < librarie.librarieDetails.shippingCount; index++) {
             const scoreArray = Object.keys(librarie.booksInLibrarieByScore).sort((a, b) => parseInt(b) - parseInt(a));
             
             let scoreIndex = 0;
             let book = null;
-            
+
             while(!book && scoreIndex < scoreArray.length) {
                 const score = scoreArray[scoreIndex];
-                const bookId = librarie.booksInLibrarieByScore[score];
-                if (scannedBooks.indexOf(bookId) === -1) {
-                    book = bookId;
+                const bookIds = librarie.booksInLibrarieByScore[score];
+                
+                bookIds.forEach(bookId => {
+                    if (scannedBooks.indexOf(bookId) === -1) {
+                        book = bookId;
+                    }
+                })
+
+                
+                if (book === 0) {
+                    delete librarie.booksInLibrarieByScore[score];
                 }
                 
                 scoreIndex++;
@@ -102,18 +110,20 @@ for (let filePath of files) {
         let totalRarity = 0;
         
         Object.keys(librarie.booksInLibrarieByScore).forEach(bookScore => {
-            const bookId = librarie.booksInLibrarieByScore[bookScore];
+            const bookIds = librarie.booksInLibrarieByScore[bookScore];
 
-            if (scannedBooks.indexOf(bookId) === -1) {
-                totalBookScore += parseInt(bookScore);
-                viableBookScores.push(parseInt(bookScore));
-                
-                const rarity = bookRarity[bookId];
-                totalRarity += rarity;
-                if (rarity < rarestBook) {
-                    rarestBook = rarity;
+            bookIds.forEach(bookId => {
+                if (scannedBooks.indexOf(bookId) === -1) {
+                    totalBookScore += parseInt(bookScore);
+                    viableBookScores.push(parseInt(bookScore));
+                    
+                    const rarity = bookRarity[bookId];
+                    totalRarity += rarity;
+                    if (rarity < rarestBook) {
+                        rarestBook = rarity;
+                    }
                 }
-            }
+            })
         })
         
         const averageBookScore = totalBookScore/viableBookScores.length;
@@ -132,17 +142,23 @@ for (let filePath of files) {
 
     let librarieOutput = {};
 
-    while(days < mainData.daysAvailable) {
+    while(days < parseInt(mainData.daysAvailable)) {
         for(let librarie of signedLibraries) {
             let librarieObject = librariesData[librarie]
             scanBooks(librarieObject);
         }
         if (scanning.days === 0) {
             const librarieToSignup = selectLibrarieToSignup();
-
             if (librarieToSignup) {
                 scanning.days = parseInt(librarieToSignup.librarieDetails.signupTime)-1;
                 scanning.scannedLibrarie = librarieToSignup;    
+
+                if (scanning.days === 0) {
+                    signedLibraries.push(scanning.scannedLibrarie.id);
+                    librarieOutput[scanning.scannedLibrarie.id] = {
+                        books: []
+                    }        
+                }
             }
         } else if (scanning.days === 1) {
             signedLibraries.push(scanning.scannedLibrarie.id);
