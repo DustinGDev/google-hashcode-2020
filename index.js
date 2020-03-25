@@ -1,6 +1,6 @@
 const fs = require('fs');
-const files = ['a_example', 'b_read_on'];
-//, 'c_incunabula', 'd_tough_choices', 'e_so_many_books', 'f_libraries_of_the_world'
+const files = ['e_so_many_books'];
+
 let absolutScore = 0;
 
 for (let filePath of files) {
@@ -143,6 +143,7 @@ for (let filePath of files) {
     let librarieOutput = {};
 
     while(days < parseInt(mainData.daysAvailable)) {
+        console.log('Days: ', days);
         for(let librarie of signedLibraries) {
             let librarieObject = librariesData[librarie]
             scanBooks(librarieObject);
